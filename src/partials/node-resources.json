@@ -1,0 +1,227 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+      "templateBaseUrl": {
+          "type": "string",
+          "metadata": {
+              "description": "The base url for templates"
+          }
+      },
+      "osSettings": {
+          "type": "object",
+          "metadata": {
+              "description" : "Operating system settings"
+          }
+      },
+      "commonVmSettings": {
+          "type": "object",
+          "metadata": {
+              "description" : "Shared VM settings"
+          }
+      }
+  },
+  "variables": {
+    "jumpboxTemplates": {
+      "No": "empty/empty-jumpbox-resources.json",
+      "Yes": "machines/jumpbox-resources.json"
+    },
+    "jumpboxTemplateUrl": "[concat(variables('templateBaseUrl'), variables('jumpboxTemplates')[parameters('jumpbox')])]",
+    "kibanaTemplates": {
+      "No": "empty/empty-kibana-resources.json",
+      "Yes": "machines/kibana-resources.json"
+    },
+    "kibanaTemplateUrl": "[concat(variables('templateBaseUrl'), variables('kibanaTemplates')[parameters('kibana')])]",
+    "masterTemplates": {
+      "No": "machines/master-nodes-resources.json",
+      "Yes": "empty/empty-master-nodes-resources.json"
+    },
+    "masterTemplateUrl": "[concat(variables('templateBaseUrl'), variables('masterTemplates')[parameters('dataNodesAreMasterEligible')])]",
+    "clientTemplates": [
+      "empty/empty-client-nodes-resources.json",
+      "machines/client-nodes-resources.json"
+    ],
+    "clientResourceIndex": "[mod(add(parameters('vmClientNodeCount'),2),add(parameters('vmClientNodeCount'),1))]",
+    "clientTemplateUrl": "[concat(variables('templateBaseUrl'), variables('clientTemplates')[variables('clientResourceIndex')])]",
+    "dataTemplateUrl": "[concat(variables('templateBaseUrl'), 'datanodes/data-node-', string(variables('dataSkuSettings')[parameters('vmSizeDataNodes')].dataDisks), 'disk-resources.json')]"
+  },
+  "resources": [
+    {
+      "name": "master-nodes",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-02-01",
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments/', 'os-settings')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('masterTemplateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "templateBaseUrl": { "value": "[parameters('templateBaseUrl')]" },
+          "vm": {
+            "value": {
+              "shared": "[variables('commonVmSettings')]",
+              "namespace": "[concat(variables('commonVmSettings').namespacePrefix, 'master-')]",
+              "installScript": "[variables('osSettings').extensionSettings.master]",
+              "size": "[parameters('vmSizeMasterNodes')]",
+              "count": 3,
+              "useSharedStorageAccount": "Yes",
+              "useBackendPools": "No",
+              "backendPools": [],
+              "imageReference": "[variables('osSettings').imageReference]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "client-nodes",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-02-01",
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments/', 'os-settings')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('clientTemplateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "templateBaseUrl": { "value": "[parameters('templateBaseUrl')]" },
+          "vm": {
+            "value": {
+              "shared": "[variables('commonVmSettings')]",
+              "namespace": "[concat(variables('commonVmSettings').namespacePrefix, 'client-')]",
+              "installScript": "[variables('osSettings').extensionSettings.client]",
+              "size": "[parameters('vmSizeClientNodes')]",
+              "count": "[parameters('vmClientNodeCount')]",
+              "useSharedStorageAccount": "Yes",
+              "useBackendPools": "Yes",
+              "backendPools": "[variables('lbBackEndPoolsAdded').backendPools]",
+              "imageReference": "[variables('osSettings').imageReference]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "data-nodes",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-02-01",
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments/', 'os-settings')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('dataTemplateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "templateBaseUrl": { "value": "[parameters('templateBaseUrl')]" },
+          "vm": {
+            "value": {
+              "shared": "[variables('commonVmSettings')]",
+              "namespace": "[concat(variables('commonVmSettings').namespacePrefix, 'data-')]",
+              "installScript": "[variables('osSettings').extensionSettings.data]",
+              "size": "[parameters('vmSizeDataNodes')]",
+              "count": "[parameters('vmDataNodeCount')]",
+              "useSharedStorageAccount": "No",
+              "useBackendPools": "Yes",
+              "backendPools": "[variables('dataLBSettings').backendPools]",
+              "imageReference": "[variables('osSettings').imageReference]"
+            }
+          },
+          "storageSettings": {
+            "value": "[variables('dataNodeStorageSettings')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "jumpbox",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-02-01",
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments/', 'os-settings')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('jumpboxTemplateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "templateBaseUrl": {
+            "value": "[variables('templateBaseUrl')]"
+          },
+          "storageAccountName": {
+            "value": "[variables('storageAccountNameShared')]"
+          },
+          "credentials": {
+            "value": "[variables('credentials')]"
+          },
+          "location": {
+            "value": "[variables('location')]"
+          },
+          "namespace": {
+            "value": "[concat(variables('namespacePrefix'), 'jumpbox')]"
+          },
+          "networkSettings": {
+            "value": "[variables('networkSettings')]"
+          },
+          "osSettings": {
+            "value": "[reference('os-settings').outputs.settings.value]"
+          }
+        }
+      }
+    },
+    {
+      "name": "kibana",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-02-01",
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments/', 'os-settings')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('kibanaTemplateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "templateBaseUrl": {
+            "value": "[variables('templateBaseUrl')]"
+          },
+          "storageAccountName": {
+            "value": "[variables('storageAccountNameShared')]"
+          },
+          "credentials": {
+            "value": "[variables('credentials')]"
+          },
+          "location": {
+            "value": "[variables('location')]"
+          },
+          "namespace": {
+            "value": "[concat(variables('namespacePrefix'), 'kibana')]"
+          },
+          "networkSettings": {
+            "value": "[variables('networkSettings')]"
+          },
+          "osSettings": {
+            "value": "[reference('os-settings').outputs.settings.value]"
+          },
+          "vmSize": {
+            "value": "[parameters('vmSizeKibana')]"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+  }
+}

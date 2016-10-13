@@ -2,28 +2,34 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+      "templateBaseUrl": {
+          "type": "string",
+          "metadata": {
+              "description": "The base url for templates"
+          }
+      },
       "esSettings": {
           "type": "object",
           "metadata": {
               "description" : "The Elasticsearch settings"
           }
       },
-      "userDetails": {
+      "commonVmSettings": {
           "type": "object",
           "metadata": {
-              "description": "User details"
+              "description" : "Shared VM settings"
           }
       },
-      "clusterSetup": {
+      "phoneHomeSettings": {
           "type": "object",
           "metadata": {
-              "description": "Cluster deployment settings"
+              "description": "Deployment details sent back to our CRM, only needed when deploying from the marketplace, optional in the ARM template"
           }
       },
-      "templateBaseUrl": {
-          "type": "string",
+      "topologySettings": {
+          "type": "object",
           "metadata": {
-              "description": "The base url for templates"
+              "description": "Aggregate for topology variable"
           }
       },
       "cloudAzureStorageAccount": {
@@ -34,25 +40,25 @@
       }
   },
   "variables": {
-    "clusterSetup": "[parameters('clusterSetup').setup]",
-    "namespacePrefix": "[parameters('clusterSetup').vmHostNamePrefix]",
+    "nodesTemplateUrl": "[concat(parameters('templateBaseUrl'), '/partials/nodes-resources.json')]",
+    "namespacePrefix": "[parameters('topologySettings').vmHostNamePrefix]",
     "dataNodeShortOpts": {
       "No": "z",
       "Yes": ""
     },
-    "dataNodeShortOpt": "[variables('dataNodeShortOpts')[parameters('clusterSetup').dataNodesAreMasterEligible]]",
+    "dataNodeShortOpt": "[variables('dataNodeShortOpts')[parameters('topologySettings').dataNodesAreMasterEligible]]",
     "dedicatedMasterNodesShortOpts": {
       "No": "d",
       "Yes": ""
     },
-    "dedicatedMasterNodesShortOpt": "[variables('dedicatedMasterNodesShortOpts')[parameters('clusterSetup').dataNodesAreMasterEligible]]",
+    "dedicatedMasterNodesShortOpt": "[variables('dedicatedMasterNodesShortOpts')[parameters('topologySettings').dataNodesAreMasterEligible]]",
     "installPluginsShortOpts": {
       "No": "",
       "Yes": "l"
     },
     "installPluginsShortOpt": "[variables('installPluginsShortOpts')[parameters('esSettings').installPlugins]]",
     "commonShortOpts": "[concat(variables('dedicatedMasterNodesShortOpt'),  variables('installPluginsShortOpt'), 'n ')]",
-    "commonInstallParams": "[concat(parameters('esSettings').clusterName, ' -v ', parameters('esSettings').version, ' -A ', parameters('esSettings').shieldAdminPwd, ' -R ', parameters('esSettings').shieldReadPwd, ' -K ', parameters('esSettings').shieldKibanaPwd, ' -S ', parameters('esSettings').shieldKibanaServerPwd, ' -Z ', parameters('clusterSetup').vmDataNodeCount, ' -p \"', variables('namespacePrefix'), '\" -a \"', parameters('cloudAzureStorageAccount').name, '\" -k \"', parameters('cloudAzureStorageAccount').key, '\"')]",
+    "commonInstallParams": "[concat(parameters('esSettings').clusterName, ' -v ', parameters('esSettings').version, ' -A ', parameters('esSettings').shieldAdminPwd, ' -R ', parameters('esSettings').shieldReadPwd, ' -K ', parameters('esSettings').shieldKibanaPwd, ' -S ', parameters('esSettings').shieldKibanaServerPwd, ' -Z ', parameters('topologySettings').vmDataNodeCount, ' -p \"', variables('namespacePrefix'), '\" -a \"', parameters('cloudAzureStorageAccount').name, '\" -k \"', parameters('cloudAzureStorageAccount').key, '\"')]",
     "ubuntuScripts": [
       "[concat(parameters('templateBaseUrl'), 'scripts/elasticsearch-ubuntu-install.sh')]",
       "[concat(parameters('templateBaseUrl'), 'scripts/kibana-install.sh')]",
@@ -103,7 +109,7 @@
             "fileUris": "[variables('ubuntuScripts')]"
           },
           "protectedSettings": {
-            "commandToExecute": "[concat('bash data-node-install.sh -', variables('dataNodeShortOpt'), variables('commonShortOpts'), variables('commonInstallParams'), ' -U \"http://app-lon02.marketo.com/index.php/leadCapture/save2\" -I \"813-MAM-392\" -c \"', parameters('userDetails').company, '\" -e \"', parameters('userDetails').email, '\" -f \"', parameters('userDetails').firstName, '\" -m \"', parameters('userDetails').lastName, '\" -t \"', parameters('userDetails').jobTitle, '\" -s \"', variables('clusterSetup'), '\" -o \"', parameters('userDetails').country, '\"')]"
+            "commandToExecute": "[concat('bash data-node-install.sh -', variables('dataNodeShortOpt'), variables('commonShortOpts'), variables('commonInstallParams'), ' -U \"http://app-lon02.marketo.com/index.php/leadCapture/save2\" -I \"813-MAM-392\" -c \"', parameters('phoneHomeSettings').company, '\" -e \"', parameters('phoneHomeSettings').email, '\" -f \"', parameters('phoneHomeSettings').firstName, '\" -m \"', parameters('phoneHomeSettings').lastName, '\" -t \"', parameters('phoneHomeSettings').jobTitle, '\" -s \"', parameters('phoneHomeSettings').topology, '\" -o \"', parameters('phoneHomeSettings').country, '\"')]"
           }
         },
         "kibana": {
@@ -115,13 +121,37 @@
             "fileUris": "[variables('ubuntuScripts')]"
           },
           "protectedSettings": {
-            "commandToExecute": "[concat('bash kibana-install.sh -', variables('installPluginsShortOpt'), 'n ', parameters('esSettings').clusterName, ' -v ', parameters('esSettings').kibanaVersion, ' -e ', parameters('esSettings').version, ' -u ', concat('http://', parameters('clusterSetup').vNetLoadBalancerIp, ':9200') ,' -S ', parameters('esSettings').shieldKibanaServerPwd)]"
+            "commandToExecute": "[concat('bash kibana-install.sh -', variables('installPluginsShortOpt'), 'n ', parameters('esSettings').clusterName, ' -v ', parameters('esSettings').kibanaVersion, ' -e ', parameters('esSettings').version, ' -u ', concat('http://', parameters('topologySettings').vNetLoadBalancerIp, ':9200') ,' -S ', parameters('esSettings').shieldKibanaServerPwd)]"
           }
         }
       }
     }
   },
   "resources": [
+    {
+      "name": "elasticsearch-nodes",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-02-01",
+      "dependsOn": [ ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('nodesTemplateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "templateBaseUrl": {
+            "value": "[variables('templateBaseUrl')]"
+          },
+          "osSettings": {
+            "value": "[variables('ubuntuSettings')]"
+          },
+          "commonVmSettings": {
+            "value": "[parameters('commonVmSettings')]"
+          }
+        }
+      }
+    }
   ],
   "outputs": {
     "settings": {
