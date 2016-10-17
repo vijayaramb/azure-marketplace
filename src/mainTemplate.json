@@ -1073,19 +1073,19 @@
       "No": "z",
       "Yes": ""
     },
-    "dataNodeShortOpt": "[variables('dataNodeShortOpts')[variables('clusterSetup').setup.dataNodesAreMasterEligible]]",
+    "dataNodeShortOpt": "[variables('dataNodeShortOpts')[variables('clusterSetup').dataNodesAreMasterEligible]]",
     "dedicatedMasterNodesShortOpts": {
       "No": "d",
       "Yes": ""
     },
-    "dedicatedMasterNodesShortOpt": "[variables('dedicatedMasterNodesShortOpts')[variables('clusterSetup').setup.dataNodesAreMasterEligible]]",
+    "dedicatedMasterNodesShortOpt": "[variables('dedicatedMasterNodesShortOpts')[variables('clusterSetup').dataNodesAreMasterEligible]]",
     "installPluginsShortOpts": {
       "No": "",
       "Yes": "l"
     },
     "installPluginsShortOpt": "[variables('installPluginsShortOpts')[variables('esSettings').installPlugins]]",
     "commonShortOpts": "[concat(variables('dedicatedMasterNodesShortOpt'),  variables('installPluginsShortOpt'), 'n ')]",
-    "commonInstallParams": "[concat(variables('esSettings').clusterName, ' -v ', variables('esSettings').version, ' -A ', variables('esSettings').shieldAdminPwd, ' -R ', variables('esSettings').shieldReadPwd, ' -K ', variables('esSettings').shieldKibanaPwd, ' -S ', variables('esSettings').shieldKibanaServerPwd, ' -Z ', variables('clusterSetup').setup.vmDataNodeCount, ' -p \"', variables('namespacePrefix'), '\" -a \"', variables('cloudAzureStorageAccount').name)]",
+    "commonInstallParams": "[concat(variables('esSettings').clusterName, ' -v ', variables('esSettings').version, ' -A ', variables('esSettings').shieldAdminPwd, ' -R ', variables('esSettings').shieldReadPwd, ' -K ', variables('esSettings').shieldKibanaPwd, ' -S ', variables('esSettings').shieldKibanaServerPwd, ' -Z ', variables('clusterSetup').vmDataNodeCount, ' -p \"', variables('namespacePrefix'), '\" -a \"', variables('cloudAzureStorageAccount').name)]",
     "ubuntuScripts": [
       "[concat(variables('templateBaseUrl'), 'scripts/elasticsearch-ubuntu-install.sh')]",
       "[concat(variables('templateBaseUrl'), 'scripts/kibana-install.sh')]",
@@ -1135,7 +1135,7 @@
             "fileUris": "[variables('ubuntuScripts')]"
           },
           "protectedSettings": {
-            "commandToExecute": "[concat('bash data-node-install.sh -', variables('dataNodeShortOpt'), variables('commonShortOpts'), variables('commonInstallParams'), ' -U \"http://app-lon02.marketo.com/index.php/leadCapture/save2\" -I \"813-MAM-392\" -c \"', variables('userDetails').company, '\" -e \"', variables('userDetails').email, '\" -f \"', variables('userDetails').firstName, '\" -m \"', variables('userDetails').lastName, '\" -t \"', variables('userDetails').jobTitle, '\" -s \"', variables('clusterSetup'), '\" -o \"', variables('userDetails').country, '\"')]"
+            "commandToExecute": "[concat('bash data-node-install.sh -', variables('dataNodeShortOpt'), variables('commonShortOpts'), variables('commonInstallParams'), ' -U \"http://app-lon02.marketo.com/index.php/leadCapture/save2\" -I \"813-MAM-392\" -c \"', variables('userDetails').company, '\" -e \"', variables('userDetails').email, '\" -f \"', variables('userDetails').firstName, '\" -m \"', variables('userDetails').lastName, '\" -t \"', variables('userDetails').jobTitle, '\" -s \"', variables('clusterSetup').setup, '\" -o \"', variables('userDetails').country, '\"')]"
           }
         },
         "kibana": {
