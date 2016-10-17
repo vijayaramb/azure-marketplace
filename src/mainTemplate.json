@@ -104,7 +104,7 @@
       ],
       "defaultValue": "Yes",
       "metadata": {
-        "description": "Install the Plugins - Marvel, Shield, Watcher, Graph* (Elasticsearch version permitting)"
+        "description": "Install the Plugins - Marvel, Shield, Watcher, Graph* (Elasticsearch 2.3.0+)"
       }
     },
     "kibana": {
@@ -341,7 +341,7 @@
         "Standard_F16s"
       ],
       "metadata": {
-        "description": "Size of the Elasticsearch master nodes, if data nodes are not master eligible 3 of these will be provisioned"
+        "description": "Size of the Elasticsearch master nodes, if data nodes are not master eligible then 3 of these will be provisioned"
       }
     },
     "vmClientNodeCount": {
@@ -1068,7 +1068,91 @@
       "subnet": "[variables('networkSettings').subnet]",
       "subnetId": "[concat(resourceId(variables('networkSettings').resourceGroup, 'Microsoft.Network/virtualNetworks', variables('networkSettings').name), '/subnets/', variables('networkSettings').subnet.name)]",
       "credentials": "[variables('credentials')]"
-    }
+    },
+    "dataNodeShortOpts": {
+      "No": "z",
+      "Yes": ""
+    },
+    "dataNodeShortOpt": "[variables('dataNodeShortOpts')[variables('clusterSetup').setup.dataNodesAreMasterEligible]]",
+    "dedicatedMasterNodesShortOpts": {
+      "No": "d",
+      "Yes": ""
+    },
+    "dedicatedMasterNodesShortOpt": "[variables('dedicatedMasterNodesShortOpts')[variables('clusterSetup').setup.dataNodesAreMasterEligible]]",
+    "installPluginsShortOpts": {
+      "No": "",
+      "Yes": "l"
+    },
+    "installPluginsShortOpt": "[variables('installPluginsShortOpts')[variables('esSettings').installPlugins]]",
+    "commonShortOpts": "[concat(variables('dedicatedMasterNodesShortOpt'),  variables('installPluginsShortOpt'), 'n ')]",
+    "commonInstallParams": "[concat(variables('esSettings').clusterName, ' -v ', variables('esSettings').version, ' -A ', variables('esSettings').shieldAdminPwd, ' -R ', variables('esSettings').shieldReadPwd, ' -K ', variables('esSettings').shieldKibanaPwd, ' -S ', variables('esSettings').shieldKibanaServerPwd, ' -Z ', variables('clusterSetup').setup.vmDataNodeCount, ' -p \"', variables('namespacePrefix'), '\" -a \"', variables('cloudAzureStorageAccount').name)]",
+    "ubuntuScripts": [
+      "[concat(variables('templateBaseUrl'), 'scripts/elasticsearch-ubuntu-install.sh')]",
+      "[concat(variables('templateBaseUrl'), 'scripts/kibana-install.sh')]",
+      "[concat(variables('templateBaseUrl'), 'scripts/vm-disk-utils-0.1.sh')]",
+      "[concat(variables('templateBaseUrl'), 'scripts/user-information.sh')]",
+      "[concat(variables('templateBaseUrl'), 'scripts/data-node-install.sh')]"
+    ],
+    "ubuntuSettings": {
+      "imageReference": {
+        "publisher": "Canonical",
+        "offer": "UbuntuServer",
+        "sku": "14.04.4-LTS",
+        "version": "latest"
+      },
+      "managementPort": "22",
+      "extensionSettings": {
+        "master": {
+          "publisher": "Microsoft.OSTCExtensions",
+          "type": "CustomScriptForLinux",
+          "typeHandlerVersion": "1.5",
+          "autoUpgradeMinorVersion": true,
+          "settings": {
+            "fileUris": "[variables('ubuntuScripts')]"
+          },
+          "protectedSettings": {
+            "commandToExecute": "[concat('bash elasticsearch-ubuntu-install.sh -x', variables('commonShortOpts'), variables('commonInstallParams'))]"
+          }
+        },
+        "client": {
+          "publisher": "Microsoft.OSTCExtensions",
+          "type": "CustomScriptForLinux",
+          "typeHandlerVersion": "1.5",
+          "autoUpgradeMinorVersion": true,
+          "settings": {
+            "fileUris": "[variables('ubuntuScripts')]"
+          },
+          "protectedSettings": {
+            "commandToExecute": "[concat('bash elasticsearch-ubuntu-install.sh -y', variables('commonShortOpts'), variables('commonInstallParams'))]"
+          }
+        },
+        "data": {
+          "publisher": "Microsoft.OSTCExtensions",
+          "type": "CustomScriptForLinux",
+          "typeHandlerVersion": "1.5",
+          "autoUpgradeMinorVersion": true,
+          "settings": {
+            "fileUris": "[variables('ubuntuScripts')]"
+          },
+          "protectedSettings": {
+            "commandToExecute": "[concat('bash data-node-install.sh -', variables('dataNodeShortOpt'), variables('commonShortOpts'), variables('commonInstallParams'), ' -U \"http://app-lon02.marketo.com/index.php/leadCapture/save2\" -I \"813-MAM-392\" -c \"', variables('userDetails').company, '\" -e \"', variables('userDetails').email, '\" -f \"', variables('userDetails').firstName, '\" -m \"', variables('userDetails').lastName, '\" -t \"', variables('userDetails').jobTitle, '\" -s \"', variables('clusterSetup'), '\" -o \"', variables('userDetails').country, '\"')]"
+          }
+        },
+        "kibana": {
+          "publisher": "Microsoft.OSTCExtensions",
+          "type": "CustomScriptForLinux",
+          "typeHandlerVersion": "1.5",
+          "autoUpgradeMinorVersion": true,
+          "settings": {
+            "fileUris": "[variables('ubuntuScripts')]"
+          },
+          "protectedSettings": {
+            "commandToExecute": "[concat('bash kibana-install.sh -', variables('installPluginsShortOpt'), 'n ', variables('esSettings').clusterName, ' -v ', variables('esSettings').kibanaVersion, ' -e ', variables('esSettings').version, ' -u ', concat('http://', variables('clusterSetup').vNetLoadBalancerIp, ':9200') ,' -S ', variables('esSettings').shieldKibanaServerPwd)]"
+          }
+        }
+      }
+    },
+    "osSettings" : "[variables('ubuntuSettings')]"
   },
   "resources": [
     {
@@ -1148,47 +1232,11 @@
       }
     },
     {
-      "name": "os-settings",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2016-02-01",
-      "dependsOn": [
-        "[concat('Microsoft.Resources/deployments/', 'cloud-azure-storage-account')]"
-      ],
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('osSettingsTemplateUrl')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "esSettings": {
-            "value": "[variables('esSettings')]"
-          },
-          "userDetails": {
-            "value": "[variables('userDetails')]"
-          },
-          "clusterSetup": {
-            "value": "[variables('clusterSetup')]"
-          },
-          "templateBaseUrl": {
-            "value": "[variables('templateBaseUrl')]"
-          },
-          "cloudAzureStorageAccount": {
-            "value": {
-              "name": "[reference('cloud-azure-storage-account').outputs.name.value]",
-              "key": "[reference('cloud-azure-storage-account').outputs.key.value]"
-            }
-          }
-        }
-      }
-    },
-    {
       "name": "master-nodes",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2016-02-01",
       "dependsOn": [
-        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]",
-        "[concat('Microsoft.Resources/deployments/', 'os-settings')]"
+        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -1204,13 +1252,22 @@
             "value": {
               "shared": "[variables('sharedVmConfig')]",
               "namespace": "[concat(variables('namespacePrefix'), 'master-')]",
-              "installScript": "[reference('os-settings').outputs.settings.value.extensionSettings.master]",
+              "installScript": {
+                "publisher": "[variables('osSettings').extensionSettings.master.publisher]",
+                "type": "[variables('osSettings').extensionSettings.master.type]",
+                "typeHandlerVersion": "[variables('osSettings').extensionSettings.master.typeHandlerVersion]",
+                "autoUpgradeMinorVersion": "[variables('osSettings').extensionSettings.master.autoUpgradeMinorVersion]",
+                "settings": "[variables('osSettings').extensionSettings.master.settings]",
+                "protectedSettings": {
+                  "commandToExecute": "[concat(variables('osSettings').extensionSettings.master.protectedSettings.commandToExecute, '\" -k \"', listKeys(resourceId(variables('cloudAzureStorageAccount').resourceGroup, 'Microsoft.Storage/storageAccounts', variables('cloudAzureStorageAccount').name), '2016-01-01').keys[0].value, '\"')]"
+                }
+              },
               "size": "[parameters('vmSizeMasterNodes')]",
               "count": 3,
               "useSharedStorageAccount": "Yes",
               "useBackendPools": "No",
               "backendPools": [],
-              "imageReference": "[reference('os-settings').outputs.settings.value.imageReference]"
+              "imageReference": "[variables('osSettings').imageReference]"
             }
           }
         }
@@ -1221,8 +1278,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2016-02-01",
       "dependsOn": [
-        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]",
-        "[concat('Microsoft.Resources/deployments/', 'os-settings')]"
+        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -1238,13 +1294,22 @@
             "value": {
               "shared": "[variables('sharedVmConfig')]",
               "namespace": "[concat(variables('namespacePrefix'), 'client-')]",
-              "installScript": "[reference('os-settings').outputs.settings.value.extensionSettings.client]",
+              "installScript": {
+                "publisher": "[variables('osSettings').extensionSettings.client.publisher]",
+                "type": "[variables('osSettings').extensionSettings.client.type]",
+                "typeHandlerVersion": "[variables('osSettings').extensionSettings.client.typeHandlerVersion]",
+                "autoUpgradeMinorVersion": "[variables('osSettings').extensionSettings.client.autoUpgradeMinorVersion]",
+                "settings": "[variables('osSettings').extensionSettings.client.settings]",
+                "protectedSettings": {
+                  "commandToExecute": "[concat(variables('osSettings').extensionSettings.client.protectedSettings.commandToExecute, '\" -k \"', listKeys(resourceId(variables('cloudAzureStorageAccount').resourceGroup, 'Microsoft.Storage/storageAccounts', variables('cloudAzureStorageAccount').name), '2016-01-01').keys[0].value, '\"')]"
+                }
+              },
               "size": "[parameters('vmSizeClientNodes')]",
               "count": "[parameters('vmClientNodeCount')]",
               "useSharedStorageAccount": "Yes",
               "useBackendPools": "Yes",
               "backendPools": "[variables('lbBackEndPoolsAdded').backendPools]",
-              "imageReference": "[reference('os-settings').outputs.settings.value.imageReference]"
+              "imageReference": "[variables('osSettings').imageReference]"
             }
           }
         }
@@ -1255,8 +1320,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2016-02-01",
       "dependsOn": [
-        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]",
-        "[concat('Microsoft.Resources/deployments/', 'os-settings')]"
+        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -1272,13 +1336,22 @@
             "value": {
               "shared": "[variables('sharedVmConfig')]",
               "namespace": "[concat(variables('namespacePrefix'), 'data-')]",
-              "installScript": "[reference('os-settings').outputs.settings.value.extensionSettings.data]",
+              "installScript": {
+                "publisher": "[variables('osSettings').extensionSettings.data.publisher]",
+                "type": "[variables('osSettings').extensionSettings.data.type]",
+                "typeHandlerVersion": "[variables('osSettings').extensionSettings.data.typeHandlerVersion]",
+                "autoUpgradeMinorVersion": "[variables('osSettings').extensionSettings.data.autoUpgradeMinorVersion]",
+                "settings": "[variables('osSettings').extensionSettings.data.settings]",
+                "protectedSettings": {
+                  "commandToExecute": "[concat(variables('osSettings').extensionSettings.data.protectedSettings.commandToExecute, '\" -k \"', listKeys(resourceId(variables('cloudAzureStorageAccount').resourceGroup, 'Microsoft.Storage/storageAccounts', variables('cloudAzureStorageAccount').name), '2016-01-01').keys[0].value, '\"')]"
+                }
+              },
               "size": "[parameters('vmSizeDataNodes')]",
               "count": "[parameters('vmDataNodeCount')]",
               "useSharedStorageAccount": "No",
               "useBackendPools": "Yes",
               "backendPools": "[variables('dataLBSettings').backendPools]",
-              "imageReference": "[reference('os-settings').outputs.settings.value.imageReference]"
+              "imageReference": "[variables('osSettings').imageReference]"
             }
           },
           "storageSettings": {
@@ -1292,8 +1365,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2016-02-01",
       "dependsOn": [
-        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]",
-        "[concat('Microsoft.Resources/deployments/', 'os-settings')]"
+        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -1321,7 +1393,7 @@
             "value": "[variables('networkSettings')]"
           },
           "osSettings": {
-            "value": "[reference('os-settings').outputs.settings.value]"
+            "value": "[variables('osSettings')]"
           }
         }
       }
@@ -1331,8 +1403,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2016-02-01",
       "dependsOn": [
-        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]",
-        "[concat('Microsoft.Resources/deployments/', 'os-settings')]"
+        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -1360,7 +1431,7 @@
             "value": "[variables('networkSettings')]"
           },
           "osSettings": {
-            "value": "[reference('os-settings').outputs.settings.value]"
+            "value": "[variables('osSettings')]"
           },
           "vmSize": {
             "value": "[parameters('vmSizeKibana')]"
