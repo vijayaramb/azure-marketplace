@@ -177,7 +177,7 @@
             "value": "[parameters('commonVmSettings').location]"
           },
           "namespace": {
-            "value": "[concat(parameters('topologySettings').namespacePrefix, 'jumpbox')]"
+            "value": "[concat(parameters('commonVmSettings').namespacePrefix, 'jumpbox')]"
           },
           "networkSettings": {
             "value": "[parameters('networkSettings')]"
