@@ -46,7 +46,7 @@
       }
   },
   "variables": {
-    "nodesTemplateUrl": "[concat(parameters('templateBaseUrl'), '/partials/nodes-resources.json')]",
+    "nodesTemplateUrl": "[concat(parameters('templateBaseUrl'), 'partials/node-resources.json')]",
     "namespacePrefix": "[parameters('topologySettings').vmHostNamePrefix]",
     "dataNodeShortOpts": {
       "No": "z",
