@@ -19,6 +19,18 @@
           "metadata": {
               "description" : "Shared VM settings"
           }
+      },
+      "topologySettings": {
+        "type": "object",
+        "metadata": {
+          "description": "Aggregate for topology variable"
+        }
+      },
+      "networkSettings": {
+        "type": "object",
+        "metadata": {
+          "description": "Network settings"
+        }
       }
   },
   "variables": {
@@ -26,24 +38,24 @@
       "No": "empty/empty-jumpbox-resources.json",
       "Yes": "machines/jumpbox-resources.json"
     },
-    "jumpboxTemplateUrl": "[concat(variables('templateBaseUrl'), variables('jumpboxTemplates')[parameters('jumpbox')])]",
+    "jumpboxTemplateUrl": "[concat(parameters('templateBaseUrl'), variables('jumpboxTemplates')[parameters('topologySettings').jumpbox])]",
     "kibanaTemplates": {
       "No": "empty/empty-kibana-resources.json",
       "Yes": "machines/kibana-resources.json"
     },
-    "kibanaTemplateUrl": "[concat(variables('templateBaseUrl'), variables('kibanaTemplates')[parameters('kibana')])]",
+    "kibanaTemplateUrl": "[concat(parameters('templateBaseUrl'), variables('kibanaTemplates')[parameters('topologySettings').kibana])]",
     "masterTemplates": {
       "No": "machines/master-nodes-resources.json",
       "Yes": "empty/empty-master-nodes-resources.json"
     },
-    "masterTemplateUrl": "[concat(variables('templateBaseUrl'), variables('masterTemplates')[parameters('dataNodesAreMasterEligible')])]",
+    "masterTemplateUrl": "[concat(parameters('templateBaseUrl'), variables('masterTemplates')[parameters('topologySettings').dataNodesAreMasterEligible])]",
     "clientTemplates": [
       "empty/empty-client-nodes-resources.json",
       "machines/client-nodes-resources.json"
     ],
-    "clientResourceIndex": "[mod(add(parameters('vmClientNodeCount'),2),add(parameters('vmClientNodeCount'),1))]",
-    "clientTemplateUrl": "[concat(variables('templateBaseUrl'), variables('clientTemplates')[variables('clientResourceIndex')])]",
-    "dataTemplateUrl": "[concat(variables('templateBaseUrl'), 'datanodes/data-node-', string(variables('dataSkuSettings')[parameters('vmSizeDataNodes')].dataDisks), 'disk-resources.json')]"
+    "clientResourceIndex": "[mod(add(parameters('topologySettings').vmClientNodeCount,2),add(parameters('topologySettings').vmClientNodeCount,1))]",
+    "clientTemplateUrl": "[concat(parameters('templateBaseUrl'), variables('clientTemplates')[variables('clientResourceIndex')])]",
+    "dataTemplateUrl": "[concat(parameters('templateBaseUrl'), 'datanodes/data-node-', string(parameters('topologySettings').dataNodeStorageSettings.dataDisks), 'disk-resources.json')]"
   },
   "resources": [
     {
@@ -63,15 +75,15 @@
           "templateBaseUrl": { "value": "[parameters('templateBaseUrl')]" },
           "vm": {
             "value": {
-              "shared": "[variables('commonVmSettings')]",
-              "namespace": "[concat(variables('commonVmSettings').namespacePrefix, 'master-')]",
-              "installScript": "[variables('osSettings').extensionSettings.master]",
-              "size": "[parameters('vmSizeMasterNodes')]",
+              "shared": "[parameters('commonVmSettings')]",
+              "namespace": "[concat(parameters('commonVmSettings').namespacePrefix, 'master-')]",
+              "installScript": "[parameters('osSettings').extensionSettings.master]",
+              "size": "[parameters('topologySettings').vmSizeMasterNodes]",
               "count": 3,
               "useSharedStorageAccount": "Yes",
               "useBackendPools": "No",
               "backendPools": [],
-              "imageReference": "[variables('osSettings').imageReference]"
+              "imageReference": "[parameters('osSettings').imageReference]"
             }
           }
         }
@@ -94,15 +106,15 @@
           "templateBaseUrl": { "value": "[parameters('templateBaseUrl')]" },
           "vm": {
             "value": {
-              "shared": "[variables('commonVmSettings')]",
-              "namespace": "[concat(variables('commonVmSettings').namespacePrefix, 'client-')]",
-              "installScript": "[variables('osSettings').extensionSettings.client]",
-              "size": "[parameters('vmSizeClientNodes')]",
-              "count": "[parameters('vmClientNodeCount')]",
+              "shared": "[parameters('commonVmSettings')]",
+              "namespace": "[concat(parameters('commonVmSettings').namespacePrefix, 'client-')]",
+              "installScript": "[parameters('osSettings').extensionSettings.client]",
+              "size": "[parameters('topologySettings').vmSizeClientNodes]",
+              "count": "[parameters('topologySettings').vmClientNodeCount]",
               "useSharedStorageAccount": "Yes",
               "useBackendPools": "Yes",
-              "backendPools": "[variables('lbBackEndPoolsAdded').backendPools]",
-              "imageReference": "[variables('osSettings').imageReference]"
+              "backendPools": "[parameters('topologySettings').loadBalancerBackEndPools]",
+              "imageReference": "[parameters('osSettings').imageReference]"
             }
           }
         }
@@ -125,19 +137,19 @@
           "templateBaseUrl": { "value": "[parameters('templateBaseUrl')]" },
           "vm": {
             "value": {
-              "shared": "[variables('commonVmSettings')]",
-              "namespace": "[concat(variables('commonVmSettings').namespacePrefix, 'data-')]",
-              "installScript": "[variables('osSettings').extensionSettings.data]",
-              "size": "[parameters('vmSizeDataNodes')]",
-              "count": "[parameters('vmDataNodeCount')]",
+              "shared": "[parameters('commonVmSettings')]",
+              "namespace": "[concat(parameters('commonVmSettings').namespacePrefix, 'data-')]",
+              "installScript": "[parameters('osSettings').extensionSettings.data]",
+              "size": "[parameters('topologySettings').vmSizeDataNodes]",
+              "count": "[parameters('topologySettings').vmDataNodeCount]",
               "useSharedStorageAccount": "No",
               "useBackendPools": "Yes",
-              "backendPools": "[variables('dataLBSettings').backendPools]",
-              "imageReference": "[variables('osSettings').imageReference]"
+              "backendPools": "[parameters('topologySettings').dataLoadBalancerBackEndPools]",
+              "imageReference": "[parameters('osSettings').imageReference]"
             }
           },
           "storageSettings": {
-            "value": "[variables('dataNodeStorageSettings')]"
+            "value": "[parameters('topologySettings').dataNodeStorageSettings]"
           }
         }
       }
@@ -157,25 +169,25 @@
         },
         "parameters": {
           "templateBaseUrl": {
-            "value": "[variables('templateBaseUrl')]"
+            "value": "[parameters('templateBaseUrl')]"
           },
           "storageAccountName": {
-            "value": "[variables('storageAccountNameShared')]"
+            "value": "[parameters('commonVmSettings').storageAccountName]"
           },
           "credentials": {
-            "value": "[variables('credentials')]"
+            "value": "[parameters('commonVmSettings').credentials]"
           },
           "location": {
-            "value": "[variables('location')]"
+            "value": "[parameters('commonVmSettings').location]"
           },
           "namespace": {
-            "value": "[concat(variables('namespacePrefix'), 'jumpbox')]"
+            "value": "[concat(parameters('topologySettings').namespacePrefix, 'jumpbox')]"
           },
           "networkSettings": {
-            "value": "[variables('networkSettings')]"
+            "value": "[parameters('networkSettings')]"
           },
           "osSettings": {
-            "value": "[reference('os-settings').outputs.settings.value]"
+            "value": "[parameters('osSettings')]"
           }
         }
       }
@@ -195,33 +207,41 @@
         },
         "parameters": {
           "templateBaseUrl": {
-            "value": "[variables('templateBaseUrl')]"
+            "value": "[parameters('templateBaseUrl')]"
           },
           "storageAccountName": {
-            "value": "[variables('storageAccountNameShared')]"
+            "value": "[parameters('commonVmSettings').storageAccountName]"
           },
           "credentials": {
-            "value": "[variables('credentials')]"
+            "value": "[parameters('commonVmSettings').credentials]"
           },
           "location": {
-            "value": "[variables('location')]"
+            "value": "[parameters('commonVmSettings').location]"
           },
           "namespace": {
-            "value": "[concat(variables('namespacePrefix'), 'kibana')]"
+            "value": "[concat(parameters('commonVmSettings').namespacePrefix, 'kibana')]"
           },
           "networkSettings": {
-            "value": "[variables('networkSettings')]"
+            "value": "[parameters('networkSettings')]"
           },
           "osSettings": {
-            "value": "[reference('os-settings').outputs.settings.value]"
+            "value": "[parameters('osSettings')]"
           },
           "vmSize": {
-            "value": "[parameters('vmSizeKibana')]"
+            "value": "[parameters('topologySettings').vmSizeKibana]"
           }
         }
       }
     }
   ],
   "outputs": {
+    "kibana": {
+      "value": "[reference('kibana').outputs.fqdn.value]",
+      "type": "string"
+    },
+    "jumpboxssh": {
+      "value": "[reference('jumpbox').outputs.ssh.value]",
+      "type": "string"
+    }
   }
 }

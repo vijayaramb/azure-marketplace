@@ -32,6 +32,12 @@
               "description": "Aggregate for topology variable"
           }
       },
+      "networkSettings": {
+        "type": "object",
+        "metadata": {
+          "description": "Network settings"
+        }
+      },
       "cloudAzureStorageAccount": {
           "type": "object",
           "metadata": {
@@ -141,22 +147,32 @@
         },
         "parameters": {
           "templateBaseUrl": {
-            "value": "[variables('templateBaseUrl')]"
+            "value": "[parameters('templateBaseUrl')]"
           },
           "osSettings": {
             "value": "[variables('ubuntuSettings')]"
           },
           "commonVmSettings": {
             "value": "[parameters('commonVmSettings')]"
+          },
+          "topologySettings": {
+            "value": "[parameters('topologySettings')]"
+          },
+          "networkSettings": {
+            "value": "[parameters('networkSettings')]"
           }
         }
       }
     }
   ],
   "outputs": {
-    "settings": {
-        "value": "[variables('ubuntuSettings')]",
-        "type": "object"
+    "kibana": {
+      "value": "[reference('elasticsearch-nodes').outputs.kibana.value]",
+      "type": "string"
+    },
+    "jumpboxssh": {
+      "value": "[reference('elasticsearch-nodes').outputs.jumpboxssh.value]",
+      "type": "string"
     }
   }
 }

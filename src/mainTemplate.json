@@ -613,7 +613,6 @@
     "networkTemplateUrl": "[concat(variables('templateBaseUrl'), 'networks/', parameters('vNetNewOrExisting'), '-virtual-network.json')]",
     "loadBalancerTemplateUrl": "[concat(variables('templateBaseUrl'), '/loadbalancers/', parameters('loadBalancerType') ,'-lb-resources.json')]",
     "osSettingsTemplateUrl": "[concat(variables('templateBaseUrl'), 'settings/ubuntuSettings.json')]",
-
     "locationMap": {
       "ResourceGroup": "[resourceGroup().location]",
       "eastasia": "[resourceGroup().location]",
@@ -642,7 +641,6 @@
       "westus2": "[resourceGroup().location]"
     },
     "location": "[variables('locationMap')[parameters('location')]]",
-
     "cloudAzureStorageAccountTemplates": {
       "new": "storageAccounts/new-storage-account.json",
       "existing": "storageAccounts/existing-storage-account.json"
@@ -690,13 +688,6 @@
       "shieldKibanaServerPwd": "[uniqueString(resourceGroup().id, deployment().name, parameters('shieldKibanaPassword'))]",
       "kibanaVersion": "[variables('esToKibanaMapping')[parameters('esVersion')]]"
     },
-
-    "topologySettings": {
-      "dataNodesAreMasterEligible": "[parameters('dataNodesAreMasterEligible')]",
-      "vmDataNodeCount": "[parameters('vmDataNodeCount')]",
-      "vmHostNamePrefix": "[parameters('vmHostNamePrefix')]",
-      "vNetLoadBalancerIp": "[parameters('vNetLoadBalancerIp')]"
-    },
     "masterNodeCount": {
       "No": "3",
       "Yes": "0"
@@ -718,32 +709,6 @@
       "new": "[resourceGroup().name]",
       "existing": "[parameters('vNetExistingResourceGroup')]"
     },
-    "backendPoolConfigurations": {
-      "internal": [
-        {
-          "id": "[concat(resourceId('Microsoft.Network/loadBalancers','es-internal-lb'),'/backendAddressPools/LBBE')]"
-        }
-      ],
-      "external": [
-        {
-          "id": "[concat(resourceId('Microsoft.Network/loadBalancers','es-internal-lb'),'/backendAddressPools/LBBE')]"
-        },
-        {
-          "id": "[concat(resourceId('Microsoft.Network/loadBalancers','es-external-lb'),'/backendAddressPools/LBBE')]"
-        }
-      ]
-    },
-    "lbBackEndPoolsAdded": {
-      "backendPools": "[variables('backendPoolConfigurations')[parameters('loadBalancerType')]]"
-    },
-    "lbBackendPoolsRemoved": {
-      "backendPools": []
-    },
-    "dataLBOptions": [
-      "[variables('lbBackEndPoolsAdded')]",
-      "[variables('lbBackEndPoolsRemoved')]"
-    ],
-    "dataLBSettings": "[variables('dataLBOptions')[variables('clientResourceIndex')]]",
     "dataSkuSettings": {
       "Standard_A0": {
         "dataDisks": 1,
@@ -1016,14 +981,55 @@
         "storageAccountType": "Premium_LRS"
       }
     },
+    "backendPoolConfigurations": {
+      "internal": [
+        {
+          "id": "[concat(resourceId('Microsoft.Network/loadBalancers','es-internal-lb'),'/backendAddressPools/LBBE')]"
+        }
+      ],
+      "external": [
+        {
+          "id": "[concat(resourceId('Microsoft.Network/loadBalancers','es-internal-lb'),'/backendAddressPools/LBBE')]"
+        },
+        {
+          "id": "[concat(resourceId('Microsoft.Network/loadBalancers','es-external-lb'),'/backendAddressPools/LBBE')]"
+        }
+      ]
+    },
+    "lbBackEndPoolsAdded": {
+      "backendPools": "[variables('backendPoolConfigurations')[parameters('loadBalancerType')]]"
+    },
+    "lbBackendPoolsRemoved": {
+      "backendPools": []
+    },
+    "dataLoadBalancerOptions": [
+      "[variables('lbBackEndPoolsAdded')]",
+      "[variables('lbBackEndPoolsRemoved')]"
+    ],
+    "clientResourceIndex": "[mod(add(parameters('vmClientNodeCount'),2),add(parameters('vmClientNodeCount'),1))]",
     "nodesPerStorageAccount": "[variables('dataSkuSettings')[parameters('vmSizeDataNodes')].nodesPerStorageAccount]",
     "storageAccountsCount": "[add(div(parameters('vmDataNodeCount'), variables('nodesPerStorageAccount')), mod(add(mod(parameters('vmDataNodeCount'), variables('nodesPerStorageAccount')),2), add(mod(parameters('vmDataNodeCount'), variables('nodesPerStorageAccount')),1)))]",
-    "dataNodeStorageSettings": {
-      "count": "[variables('storageAccountsCount')]",
-      "nodesPerStorageAccount": "[variables('nodesPerStorageAccount')]",
-      "accountType": "[variables('dataSkuSettings')[parameters('vmSizeDataNodes')].storageAccountType]"
+    "topologySettings": {
+      "dataNodesAreMasterEligible": "[parameters('dataNodesAreMasterEligible')]",
+      "vmDataNodeCount": "[parameters('vmDataNodeCount')]",
+      "vmSizeDataNodes": "[parameters('vmSizeDataNodes')]",
+      "vmHostNamePrefix": "[parameters('vmHostNamePrefix')]",
+      "vmClientNodeCount": "[parameters('vmClientNodeCount')]",
+      "vmSizeClientNodes": "[parameters('vmSizeClientNodes')]",
+      "vNetLoadBalancerIp": "[parameters('vNetLoadBalancerIp')]",
+      "vmSizeMasterNodes": "[parameters('vmSizeMasterNodes')]",
+      "vmSizeKibana": "[parameters('vmSizeKibana')]",
+      "kibana": "[parameters('kibana')]",
+      "jumpbox": "[parameters('jumpbox')]",
+      "dataNodeStorageSettings": {
+        "count": "[variables('storageAccountsCount')]",
+        "nodesPerStorageAccount": "[variables('nodesPerStorageAccount')]",
+        "accountType": "[variables('dataSkuSettings')[parameters('vmSizeDataNodes')].storageAccountType]",
+        "dataDisks": "[variables('dataSkuSettings')[parameters('vmSizeDataNodes')].dataDisks]"
+      },
+      "dataLoadBalancerBackEndPools": "[variables('dataLoadBalancerOptions')[variables('clientResourceIndex')].backendPools]",
+      "loadBalancerBackEndPools": "[variables('lbBackEndPoolsAdded').backendPools]"
     },
-
     "networkSettings": {
       "name": "[parameters('vNetName')]",
       "resourceGroup": "[variables('networkResourceGroupMap')[parameters('vNetNewOrExisting')]]",
@@ -1035,7 +1041,6 @@
         "loadbalancerIp": "[parameters('vNetLoadBalancerIp')]"
       }
     },
-
     "commonVmSettings": {
       "namespacePrefix": "[parameters('vmHostNamePrefix')]",
       "storageAccountName": "[concat('elastic', uniqueString(resourceGroup().id, deployment().name))]",
@@ -1128,7 +1133,7 @@
       }
     },
     {
-      "name": "os-settings",
+      "name": "virtual-machines",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2016-02-01",
       "dependsOn": [
@@ -1157,6 +1162,9 @@
           "topologySettings": {
             "value": "[variables('topologySettings')]"
           },
+          "networkSettings": {
+            "value": "[variables('networkSettings')]"
+          },
           "cloudAzureStorageAccount": {
             "value": {
               "name": "[reference('cloud-azure-storage-account').outputs.name.value]",
@@ -1173,11 +1181,11 @@
       "type": "string"
     },
     "kibana": {
-      "value": "[reference('kibana').outputs.fqdn.value]",
+      "value": "[reference('virtual-machines').outputs.kibana.value]",
       "type": "string"
     },
-    "jumpbox-ssh": {
-      "value": "[reference('jumpbox').outputs.ssh.value]",
+    "jumpboxssh": {
+      "value": "[reference('virtual-machines').outputs.jumpboxssh.value]",
       "type": "string"
     }
   }
