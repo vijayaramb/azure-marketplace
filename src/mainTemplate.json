@@ -609,9 +609,9 @@
   },
   "variables": {
     "templateBaseUrl": "[concat(parameters('artifactsBaseUrl'), '/')]",
-    "sharedTemplateUrl": "[concat(variables('templateBaseUrl'), '/partials/shared-resources.json')]",
+    "sharedTemplateUrl": "[concat(variables('templateBaseUrl'), 'partials/shared-resources.json')]",
     "networkTemplateUrl": "[concat(variables('templateBaseUrl'), 'networks/', parameters('vNetNewOrExisting'), '-virtual-network.json')]",
-    "loadBalancerTemplateUrl": "[concat(variables('templateBaseUrl'), '/loadbalancers/', parameters('loadBalancerType') ,'-lb-resources.json')]",
+    "loadBalancerTemplateUrl": "[concat(variables('templateBaseUrl'), 'loadbalancers/', parameters('loadBalancerType') ,'-lb-resources.json')]",
     "osSettingsTemplateUrl": "[concat(variables('templateBaseUrl'), 'settings/ubuntuSettings.json')]",
     "locationMap": {
       "ResourceGroup": "[resourceGroup().location]",
