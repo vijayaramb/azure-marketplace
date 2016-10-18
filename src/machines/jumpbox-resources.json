@@ -4,7 +4,7 @@
   "parameters": {
     "templateBaseUrl": {
       "type": "string",
-      "defaultValue": "https://raw.githubusercontent.com/elastic/azure-marketplace/master/src/",
+      "defaultValue": "https://raw.githubusercontent.com/elastic/azure-marketplace/reshuffle/src/",
       "metadata": {
         "description": "Base uri of resources"
       }
