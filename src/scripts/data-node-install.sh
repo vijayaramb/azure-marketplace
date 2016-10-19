@@ -59,6 +59,7 @@ help()
     echo "-s cluster setup"
     echo "-o country"
 
+    echo "-j install azure cloud plugin for snapshot and restore"
     echo "-a set the default storage account for azure cloud plugin"
     echo "-k set the key for the default storage account for azure cloud plugin"
 
@@ -81,7 +82,7 @@ CLUSTER_NAME="elasticsearch"
 NAMESPACE_PREFIX=""
 ES_VERSION="2.0.0"
 INSTALL_PLUGINS=0
-INSTALL_CLOUDAZURE_PLUGIN=0
+INSTALL_AZURECLOUD_PLUGIN=0
 STORAGE_ACCOUNT=""
 STORAGE_KEY=""
 CLUSTER_USES_DEDICATED_MASTERS=0
@@ -133,7 +134,7 @@ while getopts :n:v:A:R:K:S:Z:p:U:I:c:e:f:m:t:s:o:a:k:xyzldjh optname; do
       INSTALL_PLUGINS=1
       ;;
     j) #install azure cloud plugin
-      INSTALL_CLOUDAZURE_PLUGIN=1
+      INSTALL_AZURECLOUD_PLUGIN=1
       ;;
     a) #azure storage account for azure cloud plugin
       STORAGE_ACCOUNT=${OPTARG}
@@ -203,7 +204,7 @@ if [ $DATA_ONLY_NODE -eq 1 ]; then
   INSTALL_SWITCHES="$INSTALL_SWITCHES -z"
 fi
 
-if [ $INSTALL_CLOUDAZURE_PLUGIN -eq 1 ]; then
+if [ $INSTALL_AZURECLOUD_PLUGIN -eq 1 ]; then
   INSTALL_SWITCHES="$INSTALL_SWITCHES -j"
 fi
 

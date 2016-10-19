@@ -59,32 +59,19 @@ The output from the market place UI is fed directly to the ARM template. You can
     <td> The name of the Elasticsearch cluster
     </td></tr>
 
-  <tr><td>cloudAzureStorageAccountName</td><td>string</td>
-    <td> The name of the storage account to use for snapshots with Azure Cloud plugin. 
-    Must be between 3 and 24 alphanumeric lowercase characters. Defaults to <code>essnapshot</code>.
+  <tr><td>azureCloudPlugin</td><td>string</td>
+    <td>Either <code>Yes</code> or <code>No</code> to install the Azure Cloud plugin for snapshot/restore. 
+    Defaults to <code>No</code>. when set to <code>Yes</code>, both <code>azureCloudeStorageAccountName</code> 
+    and <code>azureCloudStorageAccountKey</code> should be specified. 
     </td></tr>
 
-  <tr><td>cloudAzureStorageAccountExistingResourceGroup</td><td>string</td>
-    <td> The resource group name when using an existing storage account with Azure Cloud plugin.
-    <strong>Required when using an existing Storage account for Azure Cloud plugin</strong>
+  <tr><td>azureCloudStorageAccountName</td><td>string</td>
+    <td> The name of an existing storage account to use for snapshots with Azure Cloud plugin. 
+    Must be between 3 and 24 alphanumeric lowercase characters.
     </td></tr>
 
-  <tr><td>cloudAzureStorageAccountNewType</td><td>string</td>
-    <td> The type of storage account when creating a new storage account for Azure Cloud plugin. Defaults to <code>Standard_LRS</code>.
-    <strong>Required when using a new Storage Account for Azure Cloud plugin</strong>
-    </td></tr>
-
-  <tr><td>cloudAzureStorageAccountNewOrExisting</td><td>string</td>
-    <td> Whether to use an <code>existing</code> storage account or create a <code>new</code> storage account for Azure Cloud plugin.
-    Defaults to <code>new</code>.
-    </td></tr>
-
-  <tr><td>cloudAzureStorageAccountNewUnique</td><td>string</td>
-    <td> Whether the new storage account to use for snapshots has been validated to be unique. 
-    If set to <code>Yes</code> then the storage account name will be taken verbatim; if set to <code>No</code> then 
-    the first 11 characters of the storage account name provided in <code>cloudAzureStorageAccountName</code> 
-    will be taken as a prefix to a randomly generated unique storage account name.
-    <strong>Required when using a new Storage Account for Azure Cloud plugin</strong>
+  <tr><td>azureCloudStorageAccountKey</td><td>securestring</td>
+    <td> The access key of an existing storage account to use for snapshots with Azure Cloud plugin.
     </td></tr>
 
   <tr><td>vNetNewOrExisting</td><td>string</td>

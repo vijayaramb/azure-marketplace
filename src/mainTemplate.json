@@ -34,7 +34,7 @@
         "description": "The name of the Elasticsearch cluster"
       }
     },
-    "cloudAzurePlugin": {
+    "azureCloudPlugin": {
       "type": "string",
       "allowedValues": [
         "Yes",
@@ -45,7 +45,7 @@
         "description": "Choose whether to install Azure Cloud plugin. The plugin allows an existing Azure storage account to be used for snapshot and restore"
       }
     },
-    "cloudAzureStorageAccountName": {
+    "azureCloudStorageAccountName": {
       "type": "string",
       "defaultValue": "",
       "maxLength": 24,
@@ -53,7 +53,7 @@
         "description": "The name of an existing storage account to use for snapshots with Azure Cloud plugin. Must be between 3 and 24 alphanumeric lowercase characters."
       }
     },
-    "cloudAzureStorageAccountKey": {
+    "azureCloudStorageAccountKey": {
       "type": "securestring",
       "defaultValue": "",
       "metadata": {
@@ -616,10 +616,10 @@
       "westus2": "[resourceGroup().location]"
     },
     "location": "[variables('locationMap')[parameters('location')]]",
-    "cloudAzureStorageAccount": {
-      "name": "[parameters('cloudAzureStorageAccountName')]",
-      "key": "[parameters('cloudAzureStorageAccountKey')]",
-      "install": "[parameters('cloudAzurePlugin')]"
+    "azureCloudStorageAccount": {
+      "name": "[parameters('azureCloudStorageAccountName')]",
+      "key": "[parameters('azureCloudStorageAccountKey')]",
+      "install": "[parameters('azureCloudPlugin')]"
     },
     "esToKibanaMapping": {
       "2.0.2": "4.2.2",
@@ -1100,8 +1100,8 @@
           "networkSettings": {
             "value": "[variables('networkSettings')]"
           },
-          "cloudAzureStorageAccount": {
-            "value": "[variables('cloudAzureStorageAccount')]"
+          "azureCloudStorageAccount": {
+            "value": "[variables('azureCloudStorageAccount')]"
           }
         }
       }
