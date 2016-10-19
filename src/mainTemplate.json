@@ -34,55 +34,30 @@
         "description": "The name of the Elasticsearch cluster"
       }
     },
-    "cloudAzureStorageAccountName": {
+    "cloudAzurePlugin": {
       "type": "string",
-      "defaultValue": "essnapshot",
-      "minLength": 3,
-      "maxLength": 24,
-      "metadata": {
-        "description": "The name of the storage account to use for snapshots with Azure Cloud plugin. Must be between 3 and 24 alphanumeric lowercase characters."
-      }
-    },
-    "cloudAzureStorageAccountExistingResourceGroup": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "The name of the resource group in which an existing storage account resides to use for snapshots with Azure Cloud plugin"
-      }
-    },
-    "cloudAzureStorageAccountNewType": {
-      "type": "string",
-      "defaultValue": "Standard_LRS",
-      "allowedValues": [
-        "Standard_LRS",
-        "Standard_ZRS",
-        "Standard_GRS",
-        "Standard_RAGRS"
-      ],
-      "metadata": {
-        "description": "The type of new storage account for snapshots with Azure Cloud plugin"
-      }
-    },
-    "cloudAzureStorageAccountNewOrExisting": {
-      "type": "string",
-      "defaultValue": "new",
-      "allowedValues": [
-        "new",
-        "existing"
-      ],
-      "metadata": {
-        "description": "Choose to create a new storage account or use an existing one for snapshots with Azure Cloud plugin"
-      }
-    },
-    "cloudAzureStorageAccountNewUnique": {
-      "type": "string",
-      "defaultValue": "No",
       "allowedValues": [
         "Yes",
         "No"
       ],
+      "defaultValue": "No",
       "metadata": {
-        "description": "Whether the new storage account to use for snapshots has been validated to be unique. If set to Yes then the new storage account name will be taken verbatim; if set to No then the first 11 characters of the storage account name will be taken as a prefix to a randomly generated unique storage account name"
+        "description": "Choose whether to install Azure Cloud plugin. The plugin allows an existing Azure storage account to be used for snapshot and restore"
+      }
+    },
+    "cloudAzureStorageAccountName": {
+      "type": "string",
+      "defaultValue": "",
+      "maxLength": 24,
+      "metadata": {
+        "description": "The name of an existing storage account to use for snapshots with Azure Cloud plugin. Must be between 3 and 24 alphanumeric lowercase characters."
+      }
+    },
+    "cloudAzureStorageAccountKey": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "The access key of an existing storage account to use for snapshots with Azure Cloud plugin"
       }
     },
     "loadBalancerType": {
@@ -641,30 +616,10 @@
       "westus2": "[resourceGroup().location]"
     },
     "location": "[variables('locationMap')[parameters('location')]]",
-    "cloudAzureStorageAccountTemplates": {
-      "new": "storageAccounts/new-storage-account.json",
-      "existing": "storageAccounts/existing-storage-account.json"
-    },
-    "cloudAzureStorageAccountNameMap": {
-      "new": {
-        "Yes": "[parameters('cloudAzureStorageAccountName')]",
-        "No": "[concat(take(parameters('cloudAzureStorageAccountName'), 11), uniqueString(resourceGroup().id, subscription().id, deployment().name))]"
-      },
-      "existing": {
-        "Yes": "[parameters('cloudAzureStorageAccountName')]",
-        "No": "[parameters('cloudAzureStorageAccountName')]"
-      }
-    },
-    "cloudAzureStorageAccountResourceGroupMap": {
-      "new": "[resourceGroup().name]",
-      "existing": "[parameters('cloudAzureStorageAccountExistingResourceGroup')]"
-    },
-    "cloudAzureStorageAccountTemplateUrl": "[concat(variables('templateBaseUrl'), variables('cloudAzureStorageAccountTemplates')[parameters('cloudAzureStorageAccountNewOrExisting')])]",
     "cloudAzureStorageAccount": {
-      "name": "[variables('cloudAzureStorageAccountNameMap')[parameters('cloudAzureStorageAccountNewOrExisting')][parameters('cloudAzureStorageAccountNewUnique')]]",
-      "type": "[parameters('cloudAzureStorageAccountNewType')]",
-      "resourceGroup": "[variables('cloudAzureStorageAccountResourceGroupMap')[parameters('cloudAzureStorageAccountNewOrExisting')]]",
-      "location": "[variables('location')]"
+      "name": "[parameters('cloudAzureStorageAccountName')]",
+      "key": "[parameters('cloudAzureStorageAccountKey')]",
+      "install": "[parameters('cloudAzurePlugin')]"
     },
     "esToKibanaMapping": {
       "2.0.2": "4.2.2",
@@ -1076,23 +1031,6 @@
       }
     },
     {
-      "name": "cloud-azure-storage-account",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2016-02-01",
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('cloudAzureStorageAccountTemplateUrl')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "cloudAzureStorageAccount": {
-            "value": "[variables('cloudAzureStorageAccount')]"
-          }
-        }
-      }
-    },
-    {
       "name": "network",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2016-02-01",
@@ -1115,8 +1053,7 @@
       "apiVersion": "2016-02-01",
       "dependsOn": [
         "[concat('Microsoft.Resources/deployments/', 'shared')]",
-        "[concat('Microsoft.Resources/deployments/', 'network')]",
-        "[concat('Microsoft.Resources/deployments/', 'cloud-azure-storage-account')]"
+        "[concat('Microsoft.Resources/deployments/', 'network')]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -1136,8 +1073,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2016-02-01",
       "dependsOn": [
-        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]",
-        "[concat('Microsoft.Resources/deployments/', 'cloud-azure-storage-account')]"
+        "[concat('Microsoft.Resources/deployments/', 'loadbalancer')]"
       ],
       "properties": {
         "mode": "Incremental",
@@ -1165,10 +1101,7 @@
             "value": "[variables('networkSettings')]"
           },
           "cloudAzureStorageAccount": {
-            "value": {
-              "name": "[variables('cloudAzureStorageAccount').name]",
-              "key": "[resourceId(variables('cloudAzureStorageAccount').resourceGroup, 'Microsoft.Storage/storageAccounts', variables('cloudAzureStorageAccount').name)]"
-            }
+            "value": "[variables('cloudAzureStorageAccount')]"
           }
         }
       }

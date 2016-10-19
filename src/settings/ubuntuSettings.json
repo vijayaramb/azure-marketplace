@@ -58,14 +58,18 @@
       "Yes": ""
     },
     "dedicatedMasterNodesShortOpt": "[variables('dedicatedMasterNodesShortOpts')[parameters('topologySettings').dataNodesAreMasterEligible]]",
+    "installCloudAzurePluginShortOpts": {
+      "No": "",
+      "Yes": "j"
+    },
+    "installCloudAzurePluginShortOpt": "[variables('installCloudAzurePluginShortOpts')[parameters('cloudAzureStorageAccount').install]]",
     "installPluginsShortOpts": {
       "No": "",
       "Yes": "l"
     },
-    "cloudStorageAccountKey": "[listKeys(parameters('cloudAzureStorageAccount').key, '2016-01-01').keys[0].value]",
     "installPluginsShortOpt": "[variables('installPluginsShortOpts')[parameters('esSettings').installPlugins]]",
-    "commonShortOpts": "[concat(variables('dedicatedMasterNodesShortOpt'),  variables('installPluginsShortOpt'), 'n ')]",
-    "commonInstallParams": "[concat(parameters('esSettings').clusterName, ' -v ', parameters('esSettings').version, ' -A ', parameters('esSettings').shieldAdminPwd, ' -R ', parameters('esSettings').shieldReadPwd, ' -K ', parameters('esSettings').shieldKibanaPwd, ' -S ', parameters('esSettings').shieldKibanaServerPwd, ' -Z ', parameters('topologySettings').vmDataNodeCount, ' -p \"', variables('namespacePrefix'), '\" -a \"', parameters('cloudAzureStorageAccount').name, '\" -k \"', variables('cloudStorageAccountKey'), '\"')]",
+    "commonShortOpts": "[concat(variables('dedicatedMasterNodesShortOpt'),  variables('installPluginsShortOpt'), variables('installCloudAzurePluginShortOpt'), 'n ')]",
+    "commonInstallParams": "[concat(parameters('esSettings').clusterName, ' -v ', parameters('esSettings').version, ' -A ', parameters('esSettings').shieldAdminPwd, ' -R ', parameters('esSettings').shieldReadPwd, ' -K ', parameters('esSettings').shieldKibanaPwd, ' -S ', parameters('esSettings').shieldKibanaServerPwd, ' -Z ', parameters('topologySettings').vmDataNodeCount, ' -p \"', variables('namespacePrefix'), '\" -a \"', parameters('cloudAzureStorageAccount').name, '\" -k \"', parameters('cloudAzureStorageAccount').key, '\"')]",
     "ubuntuScripts": [
       "[concat(parameters('templateBaseUrl'), 'scripts/elasticsearch-ubuntu-install.sh')]",
       "[concat(parameters('templateBaseUrl'), 'scripts/kibana-install.sh')]",

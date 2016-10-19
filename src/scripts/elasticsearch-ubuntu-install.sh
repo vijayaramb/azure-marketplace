@@ -115,11 +115,12 @@ USER_READ_PWD="changeME"
 USER_KIBANA4_PWD="changeME"
 USER_KIBANA4_SERVER_PWD="changeME"
 
+INSTALL_CLOUDAZURE_PLUGIN=0
 STORAGE_ACCOUNT=""
 STORAGE_KEY=""
 
 #Loop through options passed
-while getopts :n:v:A:R:K:S:Z:p:a:k:xyzldh optname; do
+while getopts :n:v:A:R:K:S:Z:p:a:k:xyzldjh optname; do
   log "Option $optname set"
   case $optname in
     n) #set cluster name
@@ -160,6 +161,9 @@ while getopts :n:v:A:R:K:S:Z:p:a:k:xyzldh optname; do
       ;;
     p) #namespace prefix for nodes
       NAMESPACE_PREFIX="${OPTARG}"
+      ;;
+    j) #install azure cloud plugin
+      INSTALL_CLOUDAZURE_PLUGIN=1
       ;;
     a) #azure storage account for azure cloud plugin
       STORAGE_ACCOUNT=${OPTARG}
@@ -269,9 +273,11 @@ install_plugins()
       log "[install_plugins] Installed X-Pack plugin Graph"
     fi
 
-    log "[install_plugins] Installing plugin Cloud-Azure"
-    sudo /usr/share/elasticsearch/bin/plugin install cloud-azure
-    log "[install_plugins] Installed plugin Cloud-Azure"
+    if [ ${INSTALL_CLOUDAZURE_PLUGIN} -ne 0 ]; then
+        log "[install_plugins] Installing plugin Cloud-Azure"
+        sudo /usr/share/elasticsearch/bin/plugin install cloud-azure
+        log "[install_plugins] Installed plugin Cloud-Azure"
+    fi
 
     log "[install_plugins] Start adding es_admin"
     sudo /usr/share/elasticsearch/bin/shield/esusers useradd "es_admin" -p "${USER_ADMIN_PWD}" -r admin
@@ -359,7 +365,7 @@ configure_elasticsearch_yaml()
     echo "network.host: _non_loopback_" >> /etc/elasticsearch/elasticsearch.yml
 
     # Configure Azure Cloud plugin
-    if [[ -n "$STORAGE_ACCOUNT" && -n "$STORAGE_KEY" ]]; then
+    if [[ -n $STORAGE_ACCOUNT && -n $STORAGE_KEY ]]; then
         log "[configure_elasticsearch_yaml] Configuring storage for Azure Cloud"
         echo "cloud.azure.storage.default.account: ${STORAGE_ACCOUNT}" >> /etc/elasticsearch/elasticsearch.yml
         echo "cloud.azure.storage.default.key: ${STORAGE_KEY}" >> /etc/elasticsearch/elasticsearch.yml
