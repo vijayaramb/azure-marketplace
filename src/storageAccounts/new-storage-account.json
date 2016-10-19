@@ -24,13 +24,5 @@
     }
   ],
   "outputs": {
-    "name": {
-      "type": "string",
-      "value": "[parameters('cloudAzureStorageAccount').name]"
-    },
-    "key": {
-      "type": "string",
-      "value": "[listKeys(resourceId(parameters('cloudAzureStorageAccount').resourceGroup, 'Microsoft.Storage/storageAccounts', parameters('cloudAzureStorageAccount').name), '2016-01-01').keys[0].value]"
-    }
   }
 }

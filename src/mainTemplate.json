@@ -104,7 +104,7 @@
       ],
       "defaultValue": "Yes",
       "metadata": {
-        "description": "Install the Plugins - Marvel, Shield, Watcher, Graph* (Elasticsearch version permitting)"
+        "description": "Install the Plugins - Marvel, Shield, Watcher, Graph* (Elasticsearch 2.3.0+)"
       }
     },
     "kibana": {
@@ -197,7 +197,7 @@
         "No"
       ],
       "metadata": {
-        "description": "Optionally add a virtual machine to the deployment which you can use to connect and manage virtual machines on the internal network"
+        "description": "Optionally add a virtual machine to the deployment which can be used to connect and manage virtual machines within the cluster"
       }
     },
     "vmSizeDataNodes": {
@@ -278,7 +278,7 @@
         "No"
       ],
       "metadata": {
-        "description": "Make all data nodes master-eligible, this can be useful for small elasticsearch cluster deployments"
+        "description": "Make all data nodes master-eligible, this can be useful for small elasticsearch cluster deployments, but for larger deployments, it is recommended to use dedicated master nodes"
       }
     },
     "vmSizeMasterNodes": {
@@ -341,7 +341,7 @@
         "Standard_F16s"
       ],
       "metadata": {
-        "description": "Size of the Elasticsearch master nodes, if data nodes are not master eligible 3 of these will be provisioned"
+        "description": "Size of the Elasticsearch master nodes, if data nodes are not master eligible, 3 master nodes of this size will be provisioned"
       }
     },
     "vmClientNodeCount": {
@@ -428,21 +428,21 @@
         "sshPublicKey"
       ],
       "metadata": {
-        "description": ""
+        "description": "Choose a password or ssh public key for the Admin username used to access virtual machines"
       }
     },
     "adminPassword": {
       "type": "securestring",
       "defaultValue": "",
       "metadata": {
-        "description": ""
+        "description": "Admin password"
       }
     },
     "sshPublicKey": {
       "type": "securestring",
       "defaultValue": "",
       "metadata": {
-        "description": ""
+        "description": "Admin ssh public key"
       }
     },
     "shieldAdminPassword": {
@@ -666,7 +666,6 @@
       "resourceGroup": "[variables('cloudAzureStorageAccountResourceGroupMap')[parameters('cloudAzureStorageAccountNewOrExisting')]]",
       "location": "[variables('location')]"
     },
-
     "esToKibanaMapping": {
       "2.0.2": "4.2.2",
       "2.1.2": "4.3.3",
@@ -1167,8 +1166,8 @@
           },
           "cloudAzureStorageAccount": {
             "value": {
-              "name": "[reference('cloud-azure-storage-account').outputs.name.value]",
-              "key": "[reference('cloud-azure-storage-account').outputs.key.value]"
+              "name": "[variables('cloudAzureStorageAccount').name]",
+              "key": "[listKeys(resourceId(variables('cloudAzureStorageAccount').resourceGroup, 'Microsoft.Storage/storageAccounts', variables('cloudAzureStorageAccount').name), '2016-01-01').keys[0].value]"
             }
           }
         }
