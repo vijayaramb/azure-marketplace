@@ -1167,7 +1167,7 @@
           "cloudAzureStorageAccount": {
             "value": {
               "name": "[variables('cloudAzureStorageAccount').name]",
-              "key": "[listKeys(resourceId(variables('cloudAzureStorageAccount').resourceGroup, 'Microsoft.Storage/storageAccounts', variables('cloudAzureStorageAccount').name), '2016-01-01').keys[0].value]"
+              "key": "[resourceId(variables('cloudAzureStorageAccount').resourceGroup, 'Microsoft.Storage/storageAccounts', variables('cloudAzureStorageAccount').name)]"
             }
           }
         }
